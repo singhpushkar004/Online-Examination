@@ -30,7 +30,7 @@ const Footer = () => {
           </Col>
         </Row>
         <hr className="footer-divider" />
-        <p className="text-center mb-0">&copy; 2025 | All Rights Reserved Designed and Develooped By Pushkar Singh</p>
+        <p className="text-center mb-0">&copy; 2025 | All Rights Reserved Designed and Developed By Pushkar Singh</p>
       </Container>
     </footer>
   );
