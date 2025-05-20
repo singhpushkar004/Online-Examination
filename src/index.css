@@ -1,0 +1,101 @@
+/* about page css */
+@import 'https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css';
+
+.about-page {
+  background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+  min-height: 100vh;
+  padding: 4rem 0;
+}
+
+.about-page h1,
+.about-page h3 {
+  color: #00e5ff;
+}
+
+.about-page ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.about-page p,
+.about-page li {
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* contact page css */
+
+.contact-page {
+  background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+  min-height: 100vh;
+  padding: 4rem 0;
+}
+
+.contact-page h1,
+.contact-page h3 {
+  color: #00e5ff;
+}
+
+.contact-page p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.contact-page .form-control {
+  border-radius: 10px;
+}
+
+.contact-page .btn {
+  background-color: #00e5ff;
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.7rem 2rem;
+}
+
+.contact-page .btn:hover {
+  background-color: #007bff;
+}
+
+/* sign up page */
+.signup-page {
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  min-height: 100vh;
+}
+
+.signup-page .form-control {
+  border-radius: 8px;
+}
+
+.signup-page .btn {
+  background-color: #00e5ff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-weight: bold;
+}
+
+.signup-page .btn:hover {
+  background-color: #007bff;
+}
+
+/* login page css */
+.login-page {
+  background: linear-gradient(to right, #141e30, #243b55);
+  min-height: 100vh;
+}
+
+.login-page .form-control {
+  border-radius: 8px;
+}
+
+.login-page .btn {
+  background-color: #00e5ff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-weight: bold;
+}
+
+.login-page .btn:hover {
+  background-color: #007bff;
+}
