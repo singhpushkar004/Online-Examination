@@ -25,7 +25,7 @@ const Footer = () => {
 
           <Col md={4}>
             <h5>Contact</h5>
-            <p><FaEnvelope className="me-2" /> singhpushkar@gmail.com</p>
+            <p><FaEnvelope className="me-2" /> singhpushkar7830@gmail.com</p>
             <p><FaMapMarkerAlt className="me-2" /> 123 Lucknow india</p>
           </Col>
         </Row>
