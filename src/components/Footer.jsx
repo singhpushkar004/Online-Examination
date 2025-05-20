@@ -25,12 +25,12 @@ const Footer = () => {
 
           <Col md={4}>
             <h5>Contact</h5>
-            <p><FaEnvelope className="me-2" /> student@example.com</p>
-            <p><FaMapMarkerAlt className="me-2" /> Teri Pg, Ghajipur</p>
+            <p><FaEnvelope className="me-2" /> singhpushkar@gmail.com</p>
+            <p><FaMapMarkerAlt className="me-2" /> 123 Lucknow india</p>
           </Col>
         </Row>
         <hr className="footer-divider" />
-        <p className="text-center mb-0">&copy; 2025 IBT System | All Rights Reserved</p>
+        <p className="text-center mb-0">&copy; 2025 | All Rights Reserved Designed and Develooped By Pushkar Singh</p>
       </Container>
     </footer>
   );
