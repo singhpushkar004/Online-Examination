@@ -1,42 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Button, Table, Modal, Form } from 'react-bootstrap';
-
-const API_URL = 'http://localhost:5000/api/examinees'; // Change this if your port is different
+import React, { useContext, useEffect, useState } from 'react';
+import { Button, Modal, Form } from 'react-bootstrap';
+import DataTable from 'react-data-table-component';
+import { ExamineeContext } from '../../context/ExamineeContext';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const ExamineeModule = () => {
-  const [examinees, setExaminees] = useState([]);
+  const {
+    examinees,
+    addExaminee,
+    updateExaminee,
+    deleteExaminee,
+    toggleExamineeStatus
+  } = useContext(ExamineeContext);
+
+  const [filteredExaminees, setFilteredExaminees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [viewModal, setViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
+
   const [formData, setFormData] = useState({
-    name: '',
-    fatherName: '',
-    motherName: '',
-    dob: '',
-    contact: '',
-    email:'',
-    college: '',
-    address: '',
-    qualification: '',
-    enrollment:'',
-    course:'',
-    
+    name: '', fatherName: '', motherName: '', dob: '', contact: '',
+    email: '', college: '', address: '', qualification: '', enrollment: '', course: ''
   });
 
   useEffect(() => {
-    fetchExaminees();
-  }, []);
-
-  const fetchExaminees = async () => {
-    try {
-      const res = await axios.get(API_URL);
-      setExaminees(res.data.data);
-      console.log(res.data);
-      
-    } catch (error) {
-      console.error("Error fetching examinees", error);
-    }
-  };
+    setFilteredExaminees(examinees);
+  }, [examinees]);
 
   const handleShowModal = (examinee = null) => {
     if (examinee) {
@@ -44,97 +35,184 @@ const ExamineeModule = () => {
       setEditingId(examinee._id);
     } else {
       setFormData({
-        name: '',
-        fatherName: '',
-        motherName: '',
-        dob: '',
-        contact: '',
-        email:'',
-        college: '',
-        address: '',
-        qualification: '',
-        enrollment:'',
-        course:'',
+        name: '', fatherName: '', motherName: '', dob: '', contact: '',
+        email: '', college: '', address: '', qualification: '', enrollment: '', course: ''
       });
       setEditingId(null);
     }
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  const handleCloseModal = () => setShowModal(false);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
-    try {
-      if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, formData);
-      } else {
-        await axios.post(API_URL, formData);
-      }
-      handleCloseModal();
-      fetchExaminees();
-    } catch (error) {
-      console.error("Error saving examinee", error);
+    if (editingId) {
+      await updateExaminee(editingId, formData);
+    } else {
+      await addExaminee(formData);
     }
+    handleCloseModal();
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      fetchExaminees();
-    } catch (error) {
-      console.error("Error deleting examinee", error);
-    }
+  const exportToExcel = (data, fileName = 'Examinees') => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, `${fileName}.xlsx`);
   };
+
+  const exportToCSV = (data, fileName = 'Examinees') => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `${fileName}.csv`);
+  };
+
+  const columns = [
+    {
+      name: "#",
+      selector: (row, index) => index + 1,
+      width: "60px",
+      
+    },
+    {
+      name: "Picture",
+      cell: row => (
+        <img
+          src={row.image ? `http://localhost:5000/uploads/${row.image}` : 'https://avatar.iran.liara.run/public/10'}
+          alt="pic"
+          className="img-fluid rounded-circle"
+          style={{ height: "60px", width: "60px" }}
+        />
+      )
+    },
+    
+    { name: "Name", selector: row => row.name, sortable: true },
+    { name: "Father", selector: row => row.fatherName, sortable: true },
+     { name: "Email", selector: row => row.email, sortable: true },
+    { name: "Branch", selector: row => row.branchId?.name, sortable: true },
+    { name: "Contact", selector: row => row.contact },
+    { name: "College", selector: row => row.college },
+    { name: "Address", selector: row => row.address },
+    { name: "Qualification", selector: row => row.qualification },
+    
+    {
+      name: "Status",
+      cell: row =>
+        row.status === '1'
+          ? <span className="badge bg-success">Verified</span>
+          : <span className="badge bg-warning text-dark">Pending</span>
+    },
+    
+    {
+  name: "Actions",
+  cell: row => (
+    <>
+      <Button size="sm" variant="info" onClick={() => handleView(row)}>
+        <i className="fa-solid fa-eye" style={{ color: "#fff" }} />
+      </Button>{' '}
+      <Button size="sm" variant="warning" onClick={() => handleShowModal(row)}>
+        <i className="fa-solid fa-pen-to-square" style={{ color: "#fff" }} />
+      </Button>{' '}
+      <Button size="sm" variant="danger" onClick={() => deleteExaminee(row._id)}>
+        <i className="fa-solid fa-trash" style={{ color: "#fff" }} />
+      </Button>{' '}
+      <Button
+        size="sm"
+        variant={row.status === '1' ? "secondary" : "success"}
+        onClick={() => toggleExamineeStatus(row._id, row.status)}
+      >
+        {row.status === '1' ? <i className="fa-solid fa-check" /> : <i className="fa-solid fa-xmark" />}
+      </Button>
+    </>
+  )
+}
+
+  ];
+  const [searchText, setSearchText] = useState('');
+
+// Filter examinees on search text change
+useEffect(() => {
+  if (!searchText) {
+    setFilteredExaminees(examinees);
+  } else {
+    const lowercasedFilter = searchText.toLowerCase();
+    const filteredData = examinees.filter(item => {
+      return (
+        item.name?.toLowerCase().includes(lowercasedFilter) ||
+        item.email?.toLowerCase().includes(lowercasedFilter) ||
+        item.contact?.toLowerCase().includes(lowercasedFilter) ||
+        item.fatherName?.toLowerCase().includes(lowercasedFilter) ||
+        item.branchId?.name?.toLowerCase().includes(lowercasedFilter)
+      );
+    });
+    setFilteredExaminees(filteredData);
+  }
+}, [searchText, examinees]);
+
+const handleView = (data) => {
+  setViewData(data);
+  setViewModal(true);
+};
+
 
   return (
     <div className="container mt-4">
-      <h3 className="mb-4 text-primary">Examinee Module</h3>
-      <Button variant="primary" onClick={() => handleShowModal()}>Add Examinee</Button>
+      <div className="d-flex justify-content-between mb-3">
+        <Button variant="primary" className='h-75' onClick={() => handleShowModal()}>
+          Add Examinee
+        </Button>
+       <div className="mb-3">
+        <Form.Control
+          type="text"
+          placeholder="Search examinees by name, email, contact..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
 
-      <Table striped bordered hover responsive className="mt-3">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Father</th>
-            <th>Mother</th>
-            <th>DOB</th>
-            <th>Contact</th>
-            <th>College</th>
-            <th>Address</th>
-            <th>Qualification</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {examinees.length > 0 ? examinees.map((ex) => (
-            <tr key={ex._id}>
-              <td>{ex.name}</td>
-              <td>{ex.fatherName}</td>
-              <td>{ex.motherName}</td>
-              <td>{ex.dob}</td>
-              <td>{ex.contact}</td>
-              <td>{ex.college}</td>
-              <td>{ex.address}</td>
-              <td>{ex.qualification}</td>
-              <td>
-                <Button variant="warning" size="sm" onClick={() => handleShowModal(ex)}>Edit</Button>{' '}
-                <Button variant="danger" size="sm" onClick={() => handleDelete(ex._id)}>Delete</Button>
-              </td>
-            </tr>
-          )) : (
-            <tr>
-              <td colSpan="9" className="text-center">No examinees found</td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+        <div>
+          <Button
+            variant="success"
+            size="sm"
+            className="me-2"
+            onClick={() => exportToCSV(filteredExaminees)}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="info"
+            size="sm"
+            className="text-white"
+            onClick={() => exportToExcel(filteredExaminees)}
+          >
+            Export Excel
+          </Button>
+        </div>
+      </div>
 
+      <div className="row">
+        <div className="col-sm-12 mx-auto">
+          <DataTable
+            columns={columns}
+            data={filteredExaminees}
+            pagination
+            highlightOnHover
+            defaultSortField="name"
+            responsive
+            
+          />
+        </div>
+      </div>
+
+      {/* Modal */}
       <Modal show={showModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
           <Modal.Title>{editingId ? 'Edit' : 'Add'} Examinee</Modal.Title>
@@ -159,7 +237,7 @@ const ExamineeModule = () => {
                 <Form.Control
                   type={field.type || 'text'}
                   name={field.name}
-                  value={formData[field.name]}
+                  value={formData[field.name] || ''}
                   onChange={handleInputChange}
                 />
               </Form.Group>
@@ -171,6 +249,56 @@ const ExamineeModule = () => {
           <Button variant="primary" onClick={handleSave}>Save</Button>
         </Modal.Footer>
       </Modal>
+      {/* student information modal */}
+            <Modal show={viewModal} onHide={() => setViewModal(false)} size="lg" centered>
+  <Modal.Header closeButton className="bg-primary text-white">
+    <Modal.Title>Examinee Profile</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {viewData && (
+      <div className="p-3">
+        <div className="text-center mb-4">
+          <img
+            src={viewData.image ? `http://localhost:5000/uploads/${viewData.image}` : 'https://avatar.iran.liara.run/public/10'}
+            alt="Examinee"
+            className="rounded-circle border border-3 border-primary shadow"
+            style={{ height: "120px", width: "120px", objectFit: "cover" }}
+          />
+          <h4 className="mt-3 text-primary">{viewData.name}</h4>
+          <p className="text-muted">{viewData.email}</p>
+        </div>
+
+        <div className="row">
+          <div className="col-md-6">
+            <p><strong>Father's Name:</strong> {viewData.fatherName}</p>
+            <p><strong>Mother's Name:</strong> {viewData.motherName}</p>
+            <p><strong>Date of Birth:</strong> {viewData.dob}</p>
+            <p><strong>Contact:</strong> {viewData.contact}</p>
+            <p><strong>Enrollment:</strong> {viewData.enrollment}</p>
+          </div>
+          <div className="col-md-6">
+            <p><strong>College:</strong> {viewData.college}</p>
+            <p><strong>Address:</strong> {viewData.address}</p>
+            <p><strong>Qualification:</strong> {viewData.qualification}</p>
+            <p><strong>Course:</strong> {viewData.course}</p>
+            <p><strong>Branch:</strong> {viewData.branchId?.name}</p>
+          </div>
+        </div>
+
+        <div className="text-center mt-4">
+          <span className={`badge fs-6 px-4 py-2 ${viewData.status === '1' ? 'bg-success' : 'bg-warning text-dark'}`}>
+            {viewData.status === '1' ? 'Verified' : 'Pending'}
+          </span>
+        </div>
+      </div>
+    )}
+  </Modal.Body>
+  <Modal.Footer className="justify-content-center">
+    <Button variant="secondary" onClick={() => setViewModal(false)}>Close</Button>
+  </Modal.Footer>
+</Modal>
+
+
     </div>
   );
 };

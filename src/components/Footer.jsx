@@ -7,12 +7,12 @@ const Footer = () => {
     <footer className="footer-section text-white py-5">
       <Container>
         <Row>
-          <Col md={4} className="mb-4">
-            <h4>ORS Project</h4>
-            <p>A full-stack web application for managing Online Result System efficiently and securely with automated reports and centralized data.</p>
+          <Col md={3} className="mb-4">
+            <h4>ExamPrep Project</h4>
+            <p>A full-stack web application for managing ExamPrep efficiently and securely with automated reports and centralized data.</p>
           </Col>
 
-          <Col md={4} className="mb-4">
+          <Col md={3} className="mb-4">
             <h5>Quick Links</h5>
             <ul className="footer-links">
               <li><a href="#about">About</a></li>
@@ -23,10 +23,13 @@ const Footer = () => {
             </ul>
           </Col>
 
-          <Col md={4}>
+          <Col md={3}>
             <h5>Contact</h5>
-            <p><FaEnvelope className="me-2" /> student@example.com</p>
-            <p><FaMapMarkerAlt className="me-2" /> Teri Pg, Ghajipur</p>
+            <p><FaEnvelope className="me-2" /> pushkar.softpro.com</p>
+            <p><FaMapMarkerAlt className="me-2" /> Lucknow </p>
+          </Col>
+          <Col md={3}>
+              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3557.3674831442177!2d80.96215187489541!3d26.923562159625238!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x399bfd7e0637bf21%3A0x730fe46201abc68a!2sSoftpro%20Learning%20Center!5e0!3m2!1sen!2sin!4v1748362169766!5m2!1sen!2sin"   style={{border:"0"}}  loading="lazy" className='w-100'></iframe>
           </Col>
         </Row>
         <hr className="footer-divider" />

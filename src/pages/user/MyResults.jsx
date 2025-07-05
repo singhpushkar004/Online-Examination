@@ -8,7 +8,7 @@ const MyResults = () => {
 
   useEffect(() => {
     if (student && student._id) {
-      axios.get(`http://localhost:5000/api/results/student/${student._id}`)
+      axios.get(`http://localhost:5000/api/exams/attempted/${student._id}`)
         .then(res => setResults(res.data))
         .catch(err => console.error('Error fetching results:', err));
     }
@@ -21,7 +21,8 @@ const MyResults = () => {
           <h4 className="mb-4 text-primary">📝 My Results</h4>
           <Table striped bordered hover responsive>
             <thead>
-              <tr>
+              <tr className='table-dark'>
+                <th>S.N</th>
                 <th>Exam Title</th>
                 <th>Subject</th>
                 <th>Score</th>
@@ -32,12 +33,14 @@ const MyResults = () => {
             </thead>
             <tbody>
               {results.length > 0 ? results.map((res, idx) => (
+                 
                 <tr key={idx}>
-                  <td>{res.examTitle}</td>
-                  <td>{res.subject}</td>
+                  <td>{idx+1}</td>
+                  <td>{res.examId?.title  }</td>
+                  <td>{res.examId.subjectId.name}</td>
                   <td>{res.score}</td>
                   <td>{res.totalMarks}</td>
-                  <td style={{ color: res.status === 'Pass' ? 'green' : 'red' }}>{res.status}</td>
+                  <td >{res.score >= res.passingMarks ? "Pass" : "Fail"}</td>
                   <td>{new Date(res.date).toLocaleString()}</td>
                 </tr>
               )) : (

@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Card, Table, Button } from 'react-bootstrap';
+import { Card, Table, Button, ProgressBar, Container } from 'react-bootstrap';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const StudentDashboard = () => {
   const [student, setStudent] = useState({});
@@ -8,7 +19,6 @@ const StudentDashboard = () => {
   const [exams, setExams] = useState([]);
 
   useEffect(() => {
-    // Get student info from localStorage
     const storedStudent = JSON.parse(localStorage.getItem('ibtUser'));
     const token = localStorage.getItem('ibtToken');
 
@@ -21,19 +31,19 @@ const StudentDashboard = () => {
     const studentId = storedStudent._id;
     setStudent(storedStudent);
 
-    // Config for authorized requests (optional if required by backend)
     const config = {
       headers: {
         Authorization: `Bearer ${token}`
       }
     };
-
-    // Fetch marks
-    axios.get(`http://localhost:5000/api/results/student/${studentId}`, config)
+    // console.log(studentId);
+    
+    // Fetch marks (exam attempts with scores)
+    axios.get(`http://localhost:5000/api/exams/attempted/${studentId}`, config)
       .then(res => setMarks(res.data))
       .catch(err => console.error('Error fetching marks:', err));
 
-    // Fetch assigned exams
+    // Fetch assigned exams (optional)
     axios.get(`http://localhost:5000/api/examinations`, config)
       .then(res => setExams(res.data))
       .catch(err => console.error('Error fetching exams:', err));
@@ -46,57 +56,137 @@ const StudentDashboard = () => {
     window.location.href = "/login";
   };
 
+  // Prepare data for the Bar chart
+  const chartData = {
+    labels: marks.map(m => m.examId?.title || 'Untitled'),
+    datasets: [
+      {
+        label: 'Score %',
+        data: marks.map(m => {
+          if (!m.score || !m.totalMarks) return 0;
+          return ((m.score / m.totalMarks) * 100).toFixed(2);
+        }),
+        backgroundColor: 'rgba(13, 110, 253, 0.7)', // bootstrap primary color with transparency
+        borderRadius: 4,
+        maxBarThickness: 40,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: context => `${context.parsed.y}%`,
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: value => `${value}%`
+        }
+      }
+    }
+  };
+
   return (
-    <div className="container mt-4">
-      <h3 className="text-success">Welcome, {student.name || 'Student'}</h3>
+    <Container className="mt-4">
+      <h3 className="text-success mb-4">Welcome, {student.name || 'Student'}</h3>
 
-      <Card className="mb-4">
-        <Card.Body>
-          <h5>Profile Information</h5>
-          <p><strong>Email:</strong> {student.email}</p>
-          <p><strong>Registration No:</strong> {student._id || 'N/A'}</p>
-        </Card.Body>
-      </Card>
+      <div className="row">
+        <div className="col-sm-11 mx-auto">
+          {/* Progress Chart */}
+      {marks.length > 0 && (
+        <Card className="mb-4 shadow-sm">
+          <Card.Body>
+            <h5 className="mb-4">Your Exam Progress</h5>
+            <Bar data={chartData} options={chartOptions} />
+          </Card.Body>
+        </Card>
+      )}
+        </div>
+      </div>
 
-      <Card className="mb-4">
+      <div className="row">
+        <div className="col-sm-11 mx-auto">
+          {/* Progress Bars Summary */}
+      {marks.length > 0 && (
+        <Card className="mb-4 shadow-sm">
+          <Card.Body>
+            <h5 className="mb-4">Progress Summary</h5>
+            {marks.map((m, idx) => {
+              const percent = m.score && m.totalMarks ? ((m.score / m.totalMarks) * 100).toFixed(2) : 0;
+              const passed = m.score >= m.passingMarks;
+              return (
+                <div key={idx} className="mb-3">
+                  <strong>{m.examId?.title || 'Untitled Exam'}</strong>
+                  <ProgressBar
+                    now={percent}
+                    label={`${percent}%`}
+                    variant={passed ? 'success' : 'danger'}
+                    style={{ height: '25px', fontWeight: 'bold' }}
+                    className="mt-2"
+                  />
+                </div>
+              );
+            })}
+          </Card.Body>
+        </Card>
+      )}
+
+        </div>
+      </div>
+      <div className="row">
+        <div className="col-sm-11 mx-auto">
+          <Card className="mb-4 shadow-sm">
+            <Card.Body>
+              <h5>Profile Information</h5>
+              <p><strong>Email:</strong> {student.email}</p>
+              <p><strong>Registration No:</strong> {student._id || 'N/A'}</p>
+            </Card.Body>
+          </Card>
+        </div>
+      </div>
+      <div className="row">
+        <div className="col-sm-11 mx-auto">
+          
+      <Card className="mb-4 shadow-sm">
         <Card.Body>
           <h5>Exam Results</h5>
-          <Table striped bordered hover>
+          <Table striped bordered hover responsive>
             <thead>
-              <tr>
+              <tr className='table-dark'>
+                <th>S.N</th>
+                <th>Title</th>
                 <th>Subject</th>
-                <th>Marks</th>
-                <th>Status</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              {marks.length > 0 ? marks.map((mark, idx) => (
+              {marks.length > 0 ? marks.map((res, idx) => (
                 <tr key={idx}>
-                  <td>{mark.subject}</td>
-                  <td>{mark.score}</td>
-                  <td>{mark.score >= 40 ? 'Pass' : 'Fail'}</td>
+                  <td>{idx + 1}</td>
+                  <td>{res.examId?.title}</td>
+                  <td>{res.examId?.subjectId?.name}</td>
+                  <td>{new Date(res.date).toLocaleString()}</td>
                 </tr>
               )) : (
-                <tr><td colSpan="3" className="text-center">No results yet</td></tr>
+                <tr><td colSpan="4" className="text-center">No results found</td></tr>
               )}
             </tbody>
           </Table>
         </Card.Body>
       </Card>
-
-      <Card className="mb-4">
-        <Card.Body>
-          <h5>Upcoming Exams</h5>
-          <ul>
-            {exams.length > 0 ? exams.map((exam, idx) => (
-              <li key={idx}>{exam.subject} - {new Date(exam.date).toLocaleDateString()}</li>
-            )) : <p>No exams assigned</p>}
-          </ul>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
       <Button variant="danger" onClick={handleLogout}>Logout</Button>
-    </div>
+    </Container>
   );
 };
 

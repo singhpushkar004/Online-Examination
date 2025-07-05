@@ -92,14 +92,14 @@ const AdministratorModule = () => {
 
   return (
     <div className="container mt-4">
-      <h3 className="mb-4 text-primary">Administrator - Manage Users</h3>
       <Button variant="primary" onClick={() => handleShowModal()}>
         Add New User
       </Button>
 
       <Table striped bordered hover className="mt-3">
         <thead>
-          <tr>
+          <tr className='table-dark'>
+            <th>#</th>
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
@@ -108,25 +108,26 @@ const AdministratorModule = () => {
         </thead>
         <tbody>
           {users.length > 0 ? (
-            users.map((user) => (
+            users.map((user,i) => (
               <tr key={user._id}>
+                <td>{i+1}</td>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
                 <td>{user.role}</td>
                 <td>
                   <Button
-                    variant="warning"
+                    variant="success"
                     size="sm"
                     onClick={() => handleShowModal(user)}
                   >
-                    Edit
+                    <i className="fa fa-edit"></i>
                   </Button>{' '}
                   <Button
                     variant="danger"
                     size="sm"
                     onClick={() => handleDelete(user._id)}
                   >
-                    Delete
+                    <i className="fa fa-trash"></i>
                   </Button>
                 </td>
               </tr>

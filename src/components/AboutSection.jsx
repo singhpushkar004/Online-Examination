@@ -7,9 +7,9 @@ const AboutSection = () => {
       <Container>
         <Row className="align-items-center">
           <Col md={6} className="text-section animate__animated animate__fadeInLeft">
-            <h2>About ORS</h2>
+            <h2>About ExamPrep</h2>
             <p>
-              The Internet Based Testing (ORS) system is a web-centric application designed to
+              The ExamPrep system is a web-centric application designed to
               automate the entire examination process for universities and training institutions.
               It provides modules for student registration, question management, examination
               conduction, and automated report generation.

@@ -18,11 +18,21 @@ const ContactPage = () => {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission logic here (e.g., send data to backend or show success message)
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    await fetch('http://localhost:5000/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
     alert('Your message has been sent!');
-  };
+    setFormData({ name: '', email: '', message: '' });
+  } catch (err) {
+    alert('Failed to send message');
+  }
+};
+
 
   return (
    <>

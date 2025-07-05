@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Card } from 'react-bootstrap';
-import { Link } from 'react-router';
 import axios from 'axios';
 
 const MyExam = () => {
@@ -9,141 +8,219 @@ const MyExam = () => {
   const [selectedExam, setSelectedExam] = useState(null);
   const [answers, setAnswers] = useState({});
   const [showModal, setShowModal] = useState(false);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
 
-  // Get the current user from localStorage
   const user = JSON.parse(localStorage.getItem("ibtUser"));
+  const branchId = JSON.parse(localStorage.getItem("branchId"));
 
   useEffect(() => {
-    if (!user?._id) return; // Check if the user is present
+    if (!user?._id) return;
 
-    // Fetch scheduled exams only once, when the user is set
-    fetchScheduledExams();
-    // Fetch attempted exams only once, when the user is set
-    fetchAttemptedExams();
-  }, [user?._id]); // Only run when user._id changes
+    const fetchData = async () => {
+      try {
+        const [scheduledExamsRes, attemptedExamsRes] = await Promise.all([
+          axios.get(`http://localhost:5000/api/examinations?status=Scheduled&branchId=${branchId}`),
+          axios.get(`http://localhost:5000/api/exams/available/${user._id}`)
+        ]);
 
-  // Fetch scheduled exams from the backend
-  const fetchScheduledExams = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/examinations?status=Scheduled');
-      setExams(res.data);
-    } catch (err) {
-      console.error("Error fetching scheduled exams:", err);
-    }
-  };
+        setExams(scheduledExamsRes.data);
+        setAttemptedExams(attemptedExamsRes.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
 
-  // Fetch attempted exams from the backend
-  const fetchAttemptedExams = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/exams/attempted/${user._id}`);
-      setAttemptedExams(res.data);
-    } catch (err) {
-      console.error("Error fetching attempted exams:", err);
-    }
-  };
+    fetchData();
+  }, [user?._id]);
 
-  // Handle change of answer for each question
   const handleOptionChange = (questionId, option) => {
     setAnswers(prev => ({ ...prev, [questionId]: option }));
   };
 
-  // Submit the exam
-  const handleSubmitExam = async () => {
+  const handleFullScreen = async () => {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+    else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+  };
+
+  const exitFullScreen = async () => {
+    if (document.exitFullscreen) await document.exitFullscreen();
+    else if (document.mozCancelFullScreen) await document.mozCancelFullScreen();
+    else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) await document.msExitFullscreen();
+  };
+
+  const submitExam = async () => {
+    if (!selectedExam || autoSubmitted) return;
+    setAutoSubmitted(true);
+
     try {
       await axios.post('http://localhost:5000/api/exams/submit', {
         studentId: user._id,
         examId: selectedExam._id,
+        sessionId: selectedExam.sessionId,
         answers
       });
-      alert("Exam submitted successfully!");
+
+      alert("Exam submitted successfully.");
+      await exitFullScreen();
       setShowModal(false);
-      fetchAttemptedExams(); // Refresh attempted exams after submission
+
+      const res = await axios.get(`http://localhost:5000/api/exams/attempted/${user._id}`);
+      setAttemptedExams(res.data);
+      setSelectedExam(null);
+      setAnswers({});
     } catch (err) {
       console.error("Error submitting exam:", err);
       alert("Submission failed.");
+    } finally {
+      setAutoSubmitted(false);
     }
   };
 
-  // Check if the exam is available based on the date
-  const isExamAvailable = (examDate) => {
-    const currentDate = new Date().toISOString().split('T')[0]; // Get current date as "YYYY-MM-DD"
-    const examDateString = examDate; // Exam date is already in "YYYY-MM-DD" format in your database
-    // console.log(currentDate+" "+examDate);
-    
-    return examDateString <= currentDate;
+  const handleTakeExam = async (exam) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/questions/exam/${exam._id}`);
+      const questions = res.data;
+
+      setSelectedExam({ ...exam, questions });
+      setAnswers({});
+      setShowModal(true);
+      setAutoSubmitted(false);
+      setRemainingTime(exam.duration * 60);
+      await handleFullScreen();
+    } catch (err) {
+      console.error("Failed to fetch questions:", err);
+      alert("Questions not found for this exam.");
+    }
   };
+
+  useEffect(() => {
+    if (!showModal) return;
+    const interval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          submitExam();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showModal]);
+
+  useEffect(() => {
+    if (!showModal) return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        submitExam();
+      }
+    };
+
+    const onFullScreenChange = () => {
+      if (!document.fullscreenElement) {
+        alert("⚠️ You cannot exit fullscreen during the exam.");
+        handleFullScreen(); // Re-enter fullscreen
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("fullscreenchange", onFullScreenChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("fullscreenchange", onFullScreenChange);
+    };
+  }, [showModal]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const isExamAvailable = (examDate, examTime, duration) => {
+    const now = new Date();
+    const start = new Date(`${examDate}T${examTime}`);
+    const end = new Date(start.getTime() + duration * 60000);
+    return now >= start && now <= end;
+  };
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    const now = new Date();
+    const updatedExams = exams.map((exam) => {
+      const start = new Date(`${exam.date}T${exam.time}`);
+      const end = new Date(start.getTime() + exam.duration * 60000);
+      const isNowAvailable = now >= start && now <= end;
+      return { ...exam, isNowAvailable };
+    });
+
+    setExams(updatedExams);
+  }, 30000); // check every 30 seconds
+
+  return () => clearInterval(interval);
+}, [exams]);
 
   return (
     <div className="container mt-4">
       <h3 className="mb-3 text-success">📝 Available Exams</h3>
       <Table striped bordered hover>
-        <thead>
+        <thead className="table-dark">
           <tr>
+            <th>#</th>
             <th>Title</th>
             <th>Subject</th>
             <th>Date</th>
+            <th>Time</th>
             <th>Duration</th>
-            <th>Total Marks</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {exams.length > 0 ? exams.map(exam => (
-            <tr key={exam._id}>
-              <td>{exam.title}</td>
-              <td>{exam.subject}</td>
-              <td>{new Date(exam.date).toLocaleDateString()}</td>
-              <td>{exam.duration} min</td>
-              <td>{exam.totalMarks}</td>
-              <td>
-                <Link to='/student/attempt'>
-                <Button 
-                  onClick={() => { setSelectedExam(exam); setShowModal(true); }} 
-                  disabled={!isExamAvailable(exam.date)} 
-                >
-                  {isExamAvailable(exam.date) ? 'Take Exam' : 'Exam Not Available Yet'}
-                </Button>
-                </Link>
-              </td>
-            </tr>
-          )) : (
-            <tr><td colSpan="6" className="text-center">No Scheduled Exams</td></tr>
-          )}
+          {exams.map((exam, i) => {
+            const alreadyAttempted = attemptedExams.some(a => a.examId._id === exam._id);
+            return (
+              <tr key={exam._id}>
+                <td>{i + 1}</td>
+                <td>{exam.title}</td>
+                <td>{exam.subjectId?.name}</td>
+                <td>{new Date(exam.date).toLocaleDateString()}</td>
+                <td>{exam.time}</td>
+                <td>{exam.duration} min</td>
+                <td>
+                  <Button
+                    disabled={!isExamAvailable(exam.date, exam.time, exam.duration) || alreadyAttempted}
+                    onClick={() => {
+                      if (alreadyAttempted) return alert("Already attempted.");
+                      handleTakeExam(exam);
+                    }}
+                  >
+                    {alreadyAttempted ? "Attempted" : "Take Exam"}
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </Table>
 
-      <h3 className="mt-5 mb-3 text-primary">📊 Attempted Exams</h3>
-      <Table striped bordered hover>
-        <thead>
-          <tr>
-            <th>Exam</th>
-            <th>Score</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {attemptedExams.length > 0 ? attemptedExams.map((exam, idx) => (
-            <tr key={idx}>
-              <td>{exam.subject}</td>
-              <td>{exam.score}/{exam.totalMarks}</td>
-              <td>{exam.score >= exam.passingMarks ? "Pass" : "Fail"}</td>
-            </tr>
-          )) : (
-            <tr><td colSpan="3" className="text-center">No exams attempted</td></tr>
-          )}
-        </tbody>
-      </Table>
-
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{selectedExam?.subject} - Exam</Modal.Title>
+      <Modal show={showModal} onHide={() => {}} size="lg" backdrop="static" keyboard={false}>
+        <Modal.Header>
+          <Modal.Title>
+            {selectedExam?.title} - Time Left: {formatTime(remainingTime)}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {selectedExam?.questions?.length ? selectedExam.questions.map((q, i) => (
-            <Card className="mb-3" key={q._id}>
+          {selectedExam?.questions?.map((q, i) => (
+            <Card key={q._id} className="mb-3">
               <Card.Body>
                 <p><strong>Q{i + 1}: {q.question}</strong></p>
-                {q.options.map((opt, idx) => (
+                {[q.optionA, q.optionB, q.optionC, q.optionD].map((opt, idx) => (
                   <Form.Check
                     key={idx}
                     type="radio"
@@ -156,11 +233,10 @@ const MyExam = () => {
                 ))}
               </Card.Body>
             </Card>
-          )) : <p>No questions available.</p>}
+          ))}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button variant="primary" onClick={handleSubmitExam}>Submit Exam</Button>
+          <Button variant="danger" onClick={submitExam}>Submit Exam</Button>
         </Modal.Footer>
       </Modal>
     </div>

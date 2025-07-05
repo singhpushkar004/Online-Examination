@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+
 import './App.css'
 import { BrowserRouter as Router, Routes , Route } from 'react-router'
 import Home from './pages/Home'
@@ -22,6 +21,15 @@ import MyResults from './pages/user/MyResults'
 import DummyExam from './pages/user/DummyExam'
 import AttemptExam from './pages/user/AttemptExam'
 import AdminLogin from './pages/admin/AdminLogin'
+import AdminHome from './pages/admin/AdminHome'
+import EmailForm from './pages/sendMail'
+import ChangePassword from './pages/user/ChangePassword'
+import AdminMessageList from './pages/admin/AdminMessageList'
+import ExamineeProfile from './pages/user/ExamineeProfile'
+import SessionMgmt from './pages/admin/SessionMgmt'
+import Branch from './pages/admin/Branch'
+import SubjectModule from './pages/admin/SubjectModule'
+import DeclareExam from './pages/admin/DeclareExam'
 
 function App() {
  
@@ -34,15 +42,22 @@ function App() {
           <Route path='/contact' element={<ContactPage/>}></Route>
           <Route path='/signup' element={<SignUpPage/>}></Route>
           <Route path='/login' element={<LoginPage/>}></Route>
+          <Route path='/email' element={<EmailForm/>}></Route>
           {/* admin Route */}
           <Route path='/adlogin' element={<AdminLogin/>}></Route>
           <Route path='/admin' element={<AdminDashboard/>}>
+          <Route index element={<AdminHome/>}></Route>
+            <Route path='session' element={<SessionMgmt/>}></Route>
+            <Route path='branch' element={<Branch/>}></Route>
+            <Route path='subject' element={<SubjectModule/>}></Route>
             <Route path='examini' element={<ExamineeModule/>}></Route>
             <Route path='question' element={<QuestionBankModule/>}></Route>
             <Route path='examination' element={<ExaminationModule/>}></Route>
             <Route path='reports' element={<ReportGenerationModule/>}></Route>
             <Route path='administrator' element={<AdministratorModule/>}></Route>
             <Route path='marks' element={<MarksUploadModule/>}></Route>
+            <Route path='message' element={<AdminMessageList/>}></Route>
+            <Route path='result' element={<DeclareExam/>}></Route>
           </Route>
 
           {/* student route */}
@@ -50,8 +65,10 @@ function App() {
             <Route index element={<StudentDashboard/>}></Route>
             <Route path='exam' element={<MyExam/>}></Route>
             <Route path='result' element={<MyResults/>}></Route>
-            {/* <Route path='attempt' element={<DummyExam/>}></Route> */}
+            <Route path='change-password' element={<ChangePassword/>}></Route>
             <Route path="attempt" element={<AttemptExam />} />
+            <Route path="profile" element={<ExamineeProfile />} />
+
           </Route>
         x
         </Routes>
